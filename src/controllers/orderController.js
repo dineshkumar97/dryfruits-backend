@@ -3,6 +3,8 @@ import Order from '../models/Order.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import UserDetails from '../models/userDetailsModel.js';
+import { sendSignupCreatedEmail } from "../services/emailService.js";
+
 // =====================================
 // CREATE CUSTOMER ORDER
 // =====================================
@@ -22,10 +24,14 @@ export const createOrder = async (req, res) => {
     const mobile = customer?.mobile?.trim();
     const email = customer?.email?.trim().toLowerCase();
 
-    if (!name || !mobile || !email ||
-        !customer?.address?.trim() ||
-        !customer?.city?.trim() ||
-        !customer?.pincode?.trim()) {
+    if (
+      !name ||
+      !mobile ||
+      !email ||
+      !customer?.address?.trim() ||
+      !customer?.city?.trim() ||
+      !customer?.pincode?.trim()
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Name, mobile, email and delivery address are required.'
@@ -80,10 +86,15 @@ export const createOrder = async (req, res) => {
       ]
     });
 
+    let customerCreated = false;
+
     if (user) {
 
       // Prevent linking different customer details
-      if (user.phone !== mobile || user.email.toLowerCase() !== email) {
+      if (
+        user.phone !== mobile ||
+        user.email.toLowerCase() !== email
+      ) {
         return res.status(409).json({
           success: false,
           message: 'Mobile number or email is already registered with another account.'
@@ -123,12 +134,10 @@ export const createOrder = async (req, res) => {
           `NNDF${String(lastNumber + 1).padStart(6, '0')}`;
       }
 
-      // 5. Generate a secure random password
-
-      const hashedPassword = await bcrypt.hash(
-        '12345',
-        10
-      );
+      // 5. Generate password
+      // Replace fixed password with a secure account-setup flow
+      // before using this in production.
+      const hashedPassword = await bcrypt.hash('12345', 10);
 
       // 6. Create customer account
       user = await UserDetails.create({
@@ -141,6 +150,7 @@ export const createOrder = async (req, res) => {
         uniqueUserId
       });
 
+      customerCreated = true;
     }
 
     // 7. Create order
@@ -161,12 +171,19 @@ export const createOrder = async (req, res) => {
       status: 'Confirmed'
     });
 
+    // 8. Send welcome email only for new customers
+    if (customerCreated) {
+      await sendSignupCreatedEmail({
+        name: user.name,
+        email: user.email,
+        uniqueUserId: user.uniqueUserId
+      });
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Order placed successfully.',
-      customerCreated: !user.createdAt || (
-        Date.now() - new Date(user.createdAt).getTime() < 5000
-      ),
+      customerCreated,
       customerId: user.uniqueUserId,
       order
     });
@@ -187,7 +204,6 @@ export const createOrder = async (req, res) => {
     });
   }
 };
-
 
 
 // =====================================

@@ -1,155 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
 
+<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to NutNest</title>
 </head>
 
-<body style="
-    margin:0;
-    padding:0;
-    background:#f4f6f8;
-    font-family:Arial, Helvetica, sans-serif;
-">
+<body style="margin:0;padding:30px;background:#f5f3eb;font-family:Arial,sans-serif;">
 
-<table width="100%" cellpadding="0" cellspacing="0">
-    <tr>
-        <td align="center" style="padding:40px 15px;">
+  <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden;">
 
-            <table
-                width="600"
-                cellpadding="0"
-                cellspacing="0"
-                style="
-                    max-width:600px;
-                    width:100%;
-                    background:#ffffff;
-                    border-radius:10px;
-                    overflow:hidden;
-                "
-            >
+    <div style="background:#173f2b;color:#ffffff;padding:30px;text-align:center;">
+      <h1 style="margin:0;">Welcome to NutNest</h1>
+    </div>
 
-                <!-- Header -->
-                <tr>
-                    <td style="
-                        background:#2563eb;
-                        padding:25px;
-                        text-align:center;
-                    ">
-                        <h1 style="
-                            margin:0;
-                            color:#ffffff;
-                            font-size:26px;
-                        ">
-                            Welcome to Our Platform
-                        </h1>
-                    </td>
-                </tr>
+    <div style="padding:35px;color:#333333;">
 
-                <!-- Content -->
-                <tr>
-                    <td style="padding:35px;">
+      <h2>Welcome, {{name}}! 👋</h2>
 
-                        <h2 style="
-                            margin-top:0;
-                            color:#222222;
-                        ">
-                            Welcome, {{name}}! 👋
-                        </h2>
+      <p>
+        Thank you for joining NutNest.
+        Your customer account has been successfully created.
+      </p>
 
-                        <p style="
-                            color:#555555;
-                            font-size:15px;
-                            line-height:1.6;
-                        ">
-                            Thank you for signing up with us.
-                            Your account has been successfully created.
-                        </p>
+      <p>
+        You can now access your account and explore our premium
+        collection of dry fruits and nuts.
+      </p>
 
-                        <p style="
-                            color:#555555;
-                            font-size:15px;
-                            line-height:1.6;
-                        ">
-                            You can now access your account and start using
-                            our platform.
-                        </p>
+      <div style="background:#f5f3eb;padding:20px;border-radius:8px;margin:25px 0;">
+        <p><strong>Customer ID:</strong> {{uniqueUserId}}</p>
+        <p><strong>Email:</strong> {{email}}</p>
+      </div>
 
-                        <!-- User Email -->
-                        <div style="
-                            background:#f8fafc;
-                            padding:15px;
-                            border-radius:6px;
-                            margin:25px 0;
-                        ">
-                            <strong>Email:</strong>
-                            {{email}}
-                        </div>
+      <div style="text-align:center;margin:30px 0;">
+        <a href="{{loginLink}}"
+           style="background:#173f2b;color:#ffffff;padding:14px 28px;
+                  text-decoration:none;border-radius:6px;font-weight:bold;">
+          Login to Your Account
+        </a>
+      </div>
 
-                        <!-- Button -->
-                        <div style="
-                            text-align:center;
-                            margin:30px 0;
-                        ">
+      <p>
+        If you did not create this account, please contact our support team.
+      </p>
 
-                            <a
-                                href="{{loginLink}}"
-                                style="
-                                    display:inline-block;
-                                    background:#2563eb;
-                                    color:#ffffff;
-                                    text-decoration:none;
-                                    padding:13px 28px;
-                                    border-radius:6px;
-                                    font-size:15px;
-                                    font-weight:bold;
-                                "
-                            >
-                                Login to Your Account
-                            </a>
+      <p>
+        Thanks,<br>
+        <strong>NutNest Support Team</strong>
+      </p>
 
-                        </div>
+    </div>
 
-                        <p style="
-                            color:#777777;
-                            font-size:13px;
-                            line-height:1.6;
-                        ">
-                            If you did not create this account, please
-                            contact our support team.
-                        </p>
+    <div style="background:#f0eee5;padding:18px;text-align:center;color:#777;font-size:12px;">
+      © 2026 NutNest. All rights reserved.
+    </div>
 
-                        <p style="
-                            color:#555555;
-                            font-size:14px;
-                        ">
-                            Thanks,<br>
-                            <strong>Support Team</strong>
-                        </p>
-
-                    </td>
-                </tr>
-
-                <!-- Footer -->
-                <tr>
-                    <td style="
-                        background:#f8fafc;
-                        padding:20px;
-                        text-align:center;
-                        color:#888888;
-                        font-size:12px;
-                    ">
-                        © 2026 Your Application. All rights reserved.
-                    </td>
-                </tr>
-
-            </table>
-
-        </td>
-    </tr>
-</table>
+  </div>
 
 </body>
 </html>

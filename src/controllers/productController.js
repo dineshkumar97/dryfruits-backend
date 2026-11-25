@@ -101,9 +101,25 @@ export const createProduct = async (req, res, next) => {
             });
         }
 
+        // Check Duplicate Product
+        const escapedName = cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        const existingProduct = await Product.findOne({
+            name: {
+                $regex: `^${escapedName}$`,
+                $options: "i"
+            },
+            weight
+        });
+
+        if (existingProduct) {
+            return res.status(409).json({
+                message: "Product with this name and weight already exists."
+            });
+        }
+
         // Create Product
         const newProduct = new Product({
-
             name: cleanName,
             category: categoryData.name,
             description: description || "",
@@ -113,16 +129,13 @@ export const createProduct = async (req, res, next) => {
             oldPrice: originalPrice,
             stock: availableStock,
             active: active ?? true
-
         });
 
         await newProduct.save();
 
         return res.status(201).json({
-
             message: "Product created successfully.",
             data: newProduct
-
         });
 
     } catch (error) {
@@ -139,24 +152,24 @@ export const createProduct = async (req, res, next) => {
 // =====================================
 export const getProducts = async (req, res, next) => {
 
-  try {
+    try {
 
-    const products = await Product.find({
-      active: true
-    }).sort({
-      createdAt: -1
-    });
+        const products = await Product.find({
+            active: true
+        }).sort({
+            createdAt: -1
+        });
 
-    return res.status(200).json({
-      message: "Products fetched successfully.",
-      data: products
-    });
+        return res.status(200).json({
+            message: "Products fetched successfully.",
+            data: products
+        });
 
-  } catch (error) {
+    } catch (error) {
 
-    next(error);
+        next(error);
 
-  }
+    }
 
 };
 

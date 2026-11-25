@@ -84,34 +84,41 @@ export const sendForgotPasswordEmail = async (employee, resetToken) => {
 
 // Signup Template
 
-export const sendSignupCreatedEmail = async ({ name, email }) => {
+export const sendSignupCreatedEmail = async ({
+  name,
+  email,
+  uniqueUserId
+}) => {
+  try {
     const templatePath = path.join(
-        __dirname,
-        "../templates/emails/signup.html"
+      __dirname,
+      '../templates/emails/signup.html'
     );
 
-    let html = await fs.readFile(templatePath, "utf-8");
+    let html = await fs.readFile(templatePath, 'utf-8');
+
     const loginLink = `${process.env.FRONTEND_URL}/login`;
 
     // Replace dynamic values
     html = html
-        .replaceAll("{{name}}", name)
-        .replaceAll("{{email}}", email)
-        .replaceAll("{{loginLink}}", loginLink);
+      .replaceAll('{{name}}', name)
+      .replaceAll('{{email}}', email)
+      .replaceAll('{{uniqueUserId}}', uniqueUserId)
+      .replaceAll('{{loginLink}}', loginLink);
+
     await transporter.sendMail({
-        from: `"HR Team" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Welcome! Your Account Has Been Created",
-        html
-    }).then(() => {
-        console.log('Account created email sent successfully');
-    })
-        .catch((error) => {
-            console.error('Account email failed:', error);
-        });
+      from: `"NutNest Support" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Welcome to NutNest - Your Account Details',
+      html
+    });
 
+    console.log('Welcome email sent successfully');
+
+  } catch (error) {
+    console.error('Account email failed:', error);
+  }
 };
-
 
 export const sendEmailJob = async () => {
     try {
