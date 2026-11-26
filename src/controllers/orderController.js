@@ -1,209 +1,354 @@
 
 import Order from '../models/Order.js';
 import bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
 import UserDetails from '../models/userDetailsModel.js';
 import { sendSignupCreatedEmail } from "../services/emailService.js";
-
+import mongoose from 'mongoose';
+import Product from '../models/Product.js'; // Adjust path to your Product model
 // =====================================
 // CREATE CUSTOMER ORDER
 // =====================================
 
 
 export const createOrder = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  let customerCreated = false;
+  let user;
+  let order;
+
   try {
-    const {
-      customer,
-      items,
-      subtotal,
-      paymentMethod
-    } = req.body;
+    await session.withTransaction(async () => {
 
-    // 1. Validate customer details
-    const name = customer?.name?.trim();
-    const mobile = customer?.mobile?.trim();
-    const email = customer?.email?.trim().toLowerCase();
+      const {
+        customer,
+        items,
+        subtotal,
+        paymentMethod
+      } = req.body;
 
-    if (
-      !name ||
-      !mobile ||
-      !email ||
-      !customer?.address?.trim() ||
-      !customer?.city?.trim() ||
-      !customer?.pincode?.trim()
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name, mobile, email and delivery address are required.'
-      });
-    }
+      // 1. Validate customer details
+      const name = customer?.name?.trim();
+      const mobile = customer?.mobile?.trim();
+      const email = customer?.email?.trim().toLowerCase() || '';
 
-    // 2. Validate order items
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Order must contain at least one product.'
-      });
-    }
+      const address = customer?.address?.trim();
+      const city = customer?.city?.trim();
+      const pincode = customer?.pincode?.trim();
 
-    if (!['COD', 'ONLINE'].includes(paymentMethod)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid payment method.'
-      });
-    }
+      if (
+        !name ||
+        !mobile ||
+        !/^[6-9][0-9]{9}$/.test(mobile) ||
+        !address ||
+        !city ||
+        !/^[0-9]{6}$/.test(pincode)
+      ) {
+        const error = new Error(
+          'Please provide valid customer and delivery details.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
 
-    const calculatedSubtotal = items.reduce(
-      (total, item) =>
-        total + Number(item.price) * Number(item.quantity),
-      0
-    );
+      // 2. Validate order items
+      if (!Array.isArray(items) || items.length === 0) {
+        const error = new Error(
+          'Order must contain at least one product.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
 
-    if (
-      !Number.isFinite(Number(subtotal)) ||
-      Number(subtotal) !== calculatedSubtotal ||
-      items.some(item =>
-        !item.productId ||
-        !item.name ||
-        !item.weight ||
-        !Number.isFinite(Number(item.price)) ||
-        Number(item.price) < 0 ||
+      if (!['COD', 'ONLINE'].includes(paymentMethod)) {
+        const error = new Error('Invalid payment method.');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // 3. Validate item structure
+      const invalidItems = items.some(item =>
+        !mongoose.isValidObjectId(item.productId) ||
         !Number.isInteger(Number(item.quantity)) ||
         Number(item.quantity) < 1
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid order items or subtotal.'
-      });
-    }
+      );
 
-    // 3. Find existing customer by mobile or email
-    let user = await UserDetails.findOne({
-      $or: [
-        { phone: mobile },
-        { email }
-      ]
-    });
-
-    let customerCreated = false;
-
-    if (user) {
-
-      // Prevent linking different customer details
-      if (
-        user.phone !== mobile ||
-        user.email.toLowerCase() !== email
-      ) {
-        return res.status(409).json({
-          success: false,
-          message: 'Mobile number or email is already registered with another account.'
-        });
+      if (invalidItems) {
+        const error = new Error('Invalid product or quantity.');
+        error.statusCode = 400;
+        throw error;
       }
 
-      if (user.role !== 'CUSTOMER') {
-        return res.status(409).json({
-          success: false,
-          message: 'This account cannot be used for customer checkout.'
-        });
+      // 4. Combine quantities for duplicate product IDs
+      const productQuantities = new Map();
+
+      for (const item of items) {
+        const productId = String(item.productId);
+
+        productQuantities.set(
+          productId,
+          (productQuantities.get(productId) || 0) +
+          Number(item.quantity)
+        );
       }
 
-      if (user.status !== 'ACTIVE') {
-        return res.status(403).json({
-          success: false,
-          message: 'Your customer account is inactive.'
-        });
-      }
+      // 5. Check and deduct product stock
+      const productMap = new Map();
 
-    } else {
+      for (const [productId, quantity] of productQuantities) {
 
-      // 4. Generate unique customer ID
-      const lastUser = await UserDetails.findOne({
-        uniqueUserId: { $regex: /^NNDF\d+$/ }
-      }).sort({ uniqueUserId: -1 });
-
-      let uniqueUserId = 'NNDF000001';
-
-      if (lastUser?.uniqueUserId) {
-        const lastNumber = parseInt(
-          lastUser.uniqueUserId.replace('NNDF', ''),
-          10
+        const product = await Product.findOneAndUpdate(
+          {
+            _id: productId,
+            active: true,
+            stock: { $gte: quantity }
+          },
+          {
+            $inc: { stock: -quantity }
+          },
+          {
+            new: true,
+            session
+          }
         );
 
-        uniqueUserId =
-          `NNDF${String(lastNumber + 1).padStart(6, '0')}`;
+        if (!product) {
+          const existingProduct = await Product.findById(productId)
+            .session(session);
+
+          const error = new Error(
+            !existingProduct
+              ? 'One of the products was not found.'
+              : !existingProduct.active
+                ? `${existingProduct.name} is currently unavailable.`
+                : `Insufficient stock for ${existingProduct.name} (${existingProduct.weight}). Available stock: ${existingProduct.stock}.`
+          );
+
+          error.statusCode = 400;
+          throw error;
+        }
+
+        productMap.set(productId, product);
       }
 
-      // 5. Generate password
-      // Replace fixed password with a secure account-setup flow
-      // before using this in production.
-      const hashedPassword = await bcrypt.hash('12345', 10);
+      // 6. Build order items using database product details
+      const orderItems = items.map(item => {
+        const product = productMap.get(String(item.productId));
 
-      // 6. Create customer account
-      user = await UserDetails.create({
-        name,
-        email,
-        phone: mobile,
-        password: hashedPassword,
-        role: 'CUSTOMER',
-        status: 'ACTIVE',
-        uniqueUserId
+        if (
+          product.weight !== item.weight
+        ) {
+          const error = new Error(
+            `Invalid product weight for ${product.name}.`
+          );
+          error.statusCode = 400;
+          throw error;
+        }
+
+        return {
+          productId: String(product._id),
+          name: product.name,
+          image: product.image || '',
+          weight: product.weight,
+          price: product.price,
+          oldPrice: product.oldPrice,
+          quantity: Number(item.quantity)
+        };
       });
 
-      customerCreated = true;
-    }
+      // 7. Calculate subtotal using database prices
+      const calculatedSubtotal = orderItems.reduce(
+        (total, item) =>
+          total + item.price * item.quantity,
+        0
+      );
 
-    // 7. Create order
-    const order = await Order.create({
-      orderId: `NN${Date.now()}${Math.floor(Math.random() * 1000)}`,
-      userId: user._id,
-      customer: {
-        name,
-        mobile,
-        email,
-        address: customer.address.trim(),
-        city: customer.city.trim(),
-        pincode: customer.pincode.trim()
-      },
-      items,
-      subtotal: calculatedSubtotal,
-      paymentMethod,
-      status: 'Confirmed'
+      if (
+        !Number.isFinite(Number(subtotal)) ||
+        Number(subtotal) !== calculatedSubtotal
+      ) {
+        const error = new Error(
+          'Product prices have changed. Please refresh your cart and try again.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // 8. Find customer using MOBILE ONLY
+      user = await UserDetails.findOne({
+        phone: mobile
+      }).session(session);
+
+      customerCreated = false;
+
+      if (user) {
+
+        if (user.role !== 'CUSTOMER') {
+          const error = new Error(
+            'This mobile number cannot be used for customer checkout.'
+          );
+          error.statusCode = 409;
+          throw error;
+        }
+
+        if (user.status !== 'ACTIVE') {
+          const error = new Error(
+            'Your customer account is inactive.'
+          );
+          error.statusCode = 403;
+          throw error;
+        }
+
+        user.name = name;
+
+        if (email) {
+          user.email = email;
+        }
+
+        await user.save({ session });
+
+      } else {
+
+        // 9. Generate unique customer ID
+        const lastUser = await UserDetails.findOne({
+          uniqueUserId: { $regex: /^NNDF\d+$/ }
+        })
+          .sort({ uniqueUserId: -1 })
+          .session(session);
+
+        let uniqueUserId = 'NNDF000001';
+
+        if (lastUser?.uniqueUserId) {
+          const lastNumber = parseInt(
+            lastUser.uniqueUserId.replace('NNDF', ''),
+            10
+          );
+
+          uniqueUserId =
+            `NNDF${String(lastNumber + 1).padStart(6, '0')}`;
+        }
+
+        // 10. Generate password
+        const hashedPassword = await bcrypt.hash('12345', 10);
+
+        // 11. Create customer
+        const createdUsers = await UserDetails.create(
+          [{
+            name,
+            email,
+            phone: mobile,
+            password: hashedPassword,
+            role: 'CUSTOMER',
+            status: 'ACTIVE',
+            uniqueUserId
+          }],
+          { session }
+        );
+
+        user = createdUsers[0];
+        customerCreated = true;
+      }
+
+      // 12. Create order
+      const createdOrders = await Order.create(
+        [{
+          orderId: `NN${Date.now()}${Math.floor(Math.random() * 1000)}`,
+
+          userId: user._id,
+
+          customer: {
+            name,
+            mobile,
+            email,
+            address,
+            city,
+            pincode
+          },
+
+          items: orderItems,
+          subtotal: calculatedSubtotal,
+          paymentMethod,
+          status: 'Confirmed'
+        }],
+        { session }
+      );
+
+      order = createdOrders[0];
+
     });
 
-    // 8. Send welcome email only for new customers
-    if (customerCreated) {
-      await sendSignupCreatedEmail({
-        name: user.name,
-        email: user.email,
-        uniqueUserId: user.uniqueUserId
-      });
+    // Transaction committed successfully
+
+    // 13. Send welcome email after successful order
+    if (customerCreated && emailIsValid(order.customer.email)) {
+      try {
+        await sendSignupCreatedEmail({
+          name: user.name,
+          email: order.customer.email,
+          uniqueUserId: user.uniqueUserId
+        });
+      } catch (emailError) {
+        console.error('Welcome email failed:', emailError);
+      }
     }
 
+    const customerDetails = {
+      _id: user._id,
+      uniqueUserId: user.uniqueUserId,
+      name: user.name,
+      mobile: user.phone,
+      email: user.email || '',
+      role: user.role,
+      status: user.status,
+      address: order.customer.address,
+      city: order.customer.city,
+      pincode: order.customer.pincode
+    };
+    // 14. Success response
     return res.status(201).json({
       success: true,
-      message: 'Order placed successfully.',
+      message: 'Order placed successfully. Stock updated.',
       customerCreated,
-      customerId: user.uniqueUserId,
+      customer: customerDetails,
       order
     });
 
   } catch (error) {
+
     console.error('Create order error:', error);
 
     if (error.code === 11000) {
+      const duplicateField = Object.keys(
+        error.keyPattern || {}
+      )[0];
+
       return res.status(409).json({
         success: false,
-        message: 'Customer mobile number or email already exists. Please check your details.'
+        message: duplicateField === 'email'
+          ? 'Email duplicate index exists. Please check your database indexes.'
+          : 'Customer mobile number already exists. Please try again.',
+        field: duplicateField || 'unknown'
       });
     }
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      message: 'Unable to create order.'
+      message: error.statusCode
+        ? error.message
+        : 'Unable to create your order.'
     });
+
+  } finally {
+    await session.endSession();
   }
 };
+
+// Helper: validate optional email
+const emailIsValid = (email) =>
+  typeof email === 'string' &&
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+
 
 
 // =====================================

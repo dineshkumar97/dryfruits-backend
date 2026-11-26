@@ -9,7 +9,7 @@ import {
     createUser,
     getUsers,
     authenticate,
-  
+    checkCustomerMobile
 } from "../controllers/userDetailsController.js";
 import {
     forgotPassword, resetPassword
@@ -26,6 +26,8 @@ router.post("/create", createUser);
 // router.get('/profile/:idUser', getProfile);
 router.get("/customers-all", getUsers);
 router.post('/authenticate',loginRateLimiter,  authenticate);
+router.post("/check-customer-mobile", checkCustomerMobile);
+
 // router.get("/customers",verifyToken,authorizeRoles("ADMIN"),getUsers);
 // router.post("/forgot-password", forgotPassword);
 // router.post("/reset-password", resetPassword);

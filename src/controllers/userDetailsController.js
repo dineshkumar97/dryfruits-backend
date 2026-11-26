@@ -2,8 +2,9 @@
 import bcrypt from 'bcryptjs';
 import generationToken from "../tokengeneration/generationToken.js";
 import UserDetails from "../models/userDetailsModel.js";
+import Order from '../models/Order.js';
 
-export const createUser = async  (req, res, next) => {
+export const createUser = async (req, res, next) => {
     try {
         const {
             name,
@@ -54,7 +55,7 @@ export const createUser = async  (req, res, next) => {
             uniqueUserId =
                 `NNDF${String(lastNumber + 1).padStart(6, "0")}`;
         }
-       
+
         // =====================================
         // Create User
         // =====================================
@@ -87,7 +88,7 @@ export const createUser = async  (req, res, next) => {
         next(error);
     }
 };
-export const getUsers = async  (req, res, next) => {
+export const getUsers = async (req, res, next) => {
     try {
         const users = await UserDetails.find();
         res.status(200).json(users);
@@ -96,7 +97,7 @@ export const getUsers = async  (req, res, next) => {
     }
 };
 
-export const authenticate = async  (req, res, next) => {
+export const authenticate = async (req, res, next) => {
     try {
         const { email, password } = req.body;
         // 1. Find user by email
@@ -142,6 +143,76 @@ export const authenticate = async  (req, res, next) => {
             token: token,
             data: userDetails
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+
+export const checkCustomerMobile = async (req, res, next) => {
+    try {
+        const { phone } = req.body;
+
+        if (!phone || !/^[6-9][0-9]{9}$/.test(phone)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid 10-digit mobile number.'
+            });
+        }
+
+        // Find registered customer
+        const user = await UserDetails.findOne({
+            phone,
+            role: 'CUSTOMER'
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Mobile number not registered. Please visit our store to purchase.'
+            });
+        }
+
+        if (user.status !== 'ACTIVE') {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account is inactive. Please contact support.'
+            });
+        }
+
+        // Get customer's latest order
+        const latestOrder = await Order.findOne({
+            userId: user._id
+        }).sort({ createdAt: -1 });
+
+        // Generate JWT
+        const token = generationToken(user);
+
+        // Prepare customer details
+        const userDetails = {
+            _id: user._id,
+            name: user.name,
+            email: user.email || '',
+            phone: user.phone,
+
+            // Get delivery details from latest order
+            address: latestOrder?.customer?.address || '',
+            city: latestOrder?.customer?.city || '',
+            pincode: latestOrder?.customer?.pincode || '',
+
+            role: user.role,
+            status: user.status,
+            uniqueUserId: user.uniqueUserId
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: 'Customer details retrieved successfully.',
+            token,
+            data: userDetails
+        });
+
     } catch (error) {
         next(error);
     }
