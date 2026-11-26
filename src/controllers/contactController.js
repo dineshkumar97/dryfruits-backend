@@ -1,67 +1,97 @@
 
 import mongoose from "mongoose";
 import Contact from "../models/Contact.js";
-import { sendContactReplyEmail } from "../services/emailService.js";
+import { sendContactReplyEmail,sendContactConfirmationEmail } from "../services/emailService.js";
 
 // ========================================
 // CUSTOMER: CREATE CONTACT ENQUIRY
 // ========================================
+
 export const createContact = async (req, res, next) => {
-  try {
-    const { fullName, mobile, email, subject, message } = req.body;
+    try {
+        const { fullName, mobile, email, subject, message } = req.body;
 
-    if (
-      !fullName?.trim() ||
-      !mobile?.trim() ||
-      !email?.trim() ||
-      !subject?.trim() ||
-      !message?.trim()
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required"
-      });
+        // Required field validation
+        if (
+            !fullName?.trim() ||
+            !mobile?.trim() ||
+            !email?.trim() ||
+            !subject?.trim() ||
+            !message?.trim()
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required"
+            });
+        }
+
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address"
+            });
+        }
+
+        // Mobile validation
+        const normalizedMobile = mobile.replace(/[\s-]/g, "");
+
+        if (!/^(?:\+91)?[6-9]\d{9}$/.test(normalizedMobile)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid Indian mobile number"
+            });
+        }
+
+        // Save enquiry
+        const contact = await Contact.create({
+            fullName: fullName.trim(),
+            mobile: normalizedMobile,
+            email: email.trim().toLowerCase(),
+            subject: subject.trim(),
+            message: message.trim()
+        });
+
+        // Send customer confirmation email
+        let emailSent = false;
+
+        try {
+            await sendContactConfirmationEmail({
+                name: contact.fullName,
+                email: contact.email,
+                subject: contact.subject,
+                message: contact.message,
+                createdAt: contact.createdAt
+            });
+
+            emailSent = true;
+
+        } catch (emailError) {
+            console.error(
+                "Contact confirmation email error:",
+                emailError
+            );
+        }
+
+        // API response
+        return res.status(201).json({
+            success: true,
+            message: emailSent
+                ? "Your enquiry has been submitted successfully. A confirmation email has been sent."
+                : "Your enquiry has been submitted successfully, but the confirmation email could not be sent.",
+            data: {
+                contactId: contact._id,
+                status: contact.status,
+                createdAt: contact.createdAt,
+                emailSent
+            }
+        });
+
+    } catch (error) {
+        next(error);
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email.trim())) {
-      return res.status(400).json({
-        success: false,
-        message: "Please enter a valid email address"
-      });
-    }
-
-    const normalizedMobile = mobile.replace(/[\s-]/g, "");
-
-    if (!/^(?:\+91)?[6-9]\d{9}$/.test(normalizedMobile)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please enter a valid Indian mobile number"
-      });
-    }
-
-    const contact = await Contact.create({
-      fullName: fullName.trim(),
-      mobile: normalizedMobile,
-      email: email.trim().toLowerCase(),
-      subject: subject.trim(),
-      message: message.trim()
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Your message has been submitted successfully",
-      data: {
-        contactId: contact._id,
-        status: contact.status,
-        createdAt: contact.createdAt
-      }
-    });
-
-  } catch (error) {
-    next(error);
-  }
 };
 
 

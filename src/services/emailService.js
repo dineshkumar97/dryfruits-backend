@@ -257,3 +257,69 @@ export const sendContactReplyEmail = async ({
         throw error;
     }
 };
+
+
+
+// Contact Enquiry Confirmation Email
+export const sendContactConfirmationEmail = async ({
+    name,
+    email,
+    subject,
+    message,
+    createdAt
+}) => {
+    try {
+        const templatePath = path.join(
+            __dirname,
+            "../templates/emails/contactConfirmation.html"
+        );
+
+        let html = await fs.readFile(templatePath, "utf-8");
+
+        const escapeHtml = (value = "") => {
+            return String(value).replace(/[&<>"']/g, (char) => {
+                const entities = {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;"
+                };
+
+                return entities[char];
+            });
+        };
+
+        const formattedDate = new Date(createdAt)
+            .toLocaleString("en-IN", {
+                dateStyle: "medium",
+                timeStyle: "short",
+                timeZone: "Asia/Kolkata"
+            });
+
+        html = html
+            .replaceAll("{{name}}", escapeHtml(name))
+            .replaceAll("{{subject}}", escapeHtml(subject))
+            .replaceAll("{{message}}", escapeHtml(message))
+            .replaceAll("{{createdAt}}", escapeHtml(formattedDate))
+            .replaceAll("{{year}}", new Date().getFullYear());
+
+        await transporter.sendMail({
+            from: `"RATASREE Support" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "We received your message - RATASREE",
+            html
+        });
+
+        console.log("Contact confirmation email sent successfully");
+
+        return {
+            success: true,
+            message: "Contact confirmation email sent successfully"
+        };
+
+    } catch (error) {
+        console.error("Contact confirmation email failed:", error);
+        throw error;
+    }
+};
