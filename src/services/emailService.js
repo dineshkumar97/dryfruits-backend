@@ -202,3 +202,58 @@ export const otpEmailSend = async ({ name, otp }) => {
 };
 
 
+
+// Contact Enquiry Reply Email
+export const sendContactReplyEmail = async ({
+    name,
+    email,
+    subject,
+    replyMessage
+}) => {
+    try {
+        const templatePath = path.join(
+            __dirname,
+            "../templates/emails/contactReply.html"
+        );
+
+        let html = await fs.readFile(templatePath, "utf-8");
+
+        const escapeHtml = (value = "") => {
+            return String(value).replace(/[&<>"']/g, (char) => {
+                const entities = {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;"
+                };
+
+                return entities[char];
+            });
+        };
+
+        html = html
+            .replaceAll("{{name}}", escapeHtml(name))
+            .replaceAll("{{subject}}", escapeHtml(subject))
+            .replaceAll("{{replyMessage}}", escapeHtml(replyMessage))
+            .replaceAll("{{year}}", new Date().getFullYear());
+
+        await transporter.sendMail({
+            from: `"RATASREE Support" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `Re: ${subject}`,
+            html
+        });
+
+        console.log("Contact reply email sent successfully");
+
+        return {
+            success: true,
+            message: "Contact reply email sent successfully"
+        };
+
+    } catch (error) {
+        console.error("Contact reply email failed:", error);
+        throw error;
+    }
+};

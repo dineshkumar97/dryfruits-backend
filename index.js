@@ -13,6 +13,7 @@ import categoryRoutes from "./src/routes/categoryRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
 import inventoryRoutes from "./src/routes/inventoryRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
+import contactRoutes from "./src/routes/contactRoutes.js";
 import { errorHandler } from "./src/middleware/errorHandler.js";
 import { requestLogger } from "./src/middleware/requestLogger.js";
 import { initializeSocket } from "./socket-server.js";
@@ -94,6 +95,11 @@ app.use(
   "/dry-fruits-be-nut/order",
   orderRoutes
 );
+app.use(
+  "/dry-fruits-be-nut/contact",
+  contactRoutes
+);
+
 
 app.use(errorHandler);
 // =====================================================
