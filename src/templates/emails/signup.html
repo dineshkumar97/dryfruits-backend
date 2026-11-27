@@ -4,57 +4,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to NutNest</title>
+  <title>Welcome to RATASREE</title>
 </head>
 
-<body style="margin:0;padding:30px;background:#f5f3eb;font-family:Arial,sans-serif;">
+<body style="margin:0;padding:30px;background:#f7f5ed;font-family:Arial,sans-serif;">
 
-  <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:14px;overflow:hidden;">
 
-    <div style="background:#173f2b;color:#ffffff;padding:30px;text-align:center;">
-      <h1 style="margin:0;">Welcome to NutNest</h1>
+    <!-- Header -->
+    <div style="background:#173b2b;color:#ffffff;padding:35px 25px;text-align:center;">
+
+      <h1 style="margin:0;color:#e8c77a;font-size:32px;letter-spacing:3px;">
+        RATASREE
+      </h1>
+
+      <p style="margin:10px 0 0;color:#ffffff;font-size:13px;letter-spacing:2px;">
+        PREMIUM DRY FRUITS
+      </p>
+
+      <div style="width:55px;height:2px;background:#e8c77a;margin:20px auto 0;"></div>
+
+      <h2 style="margin:20px 0 0;color:#ffffff;font-size:23px;">
+        Welcome to Our Family!
+      </h2>
+
     </div>
 
+    <!-- Content -->
     <div style="padding:35px;color:#333333;">
 
-      <h2>Welcome, {{name}}! 👋</h2>
+      <h2 style="color:#173b2b;font-size:23px;">
+        Hello {{name}}!
+      </h2>
 
-      <p>
-        Thank you for joining NutNest.
-        Your customer account has been successfully created.
+      <p style="font-size:15px;line-height:1.8;">
+        Welcome to <strong style="color:#173b2b;">RATASREE</strong>!
+        Thank you for creating an account with us.
+        We're delighted to have you as part of our family.
       </p>
 
-      <p>
-        You can now access your account and explore our premium
-        collection of dry fruits and nuts.
+      <p style="font-size:15px;line-height:1.8;">
+        Discover our carefully selected collection of premium
+        dry fruits and nuts, bringing quality and goodness
+        straight to your home.
       </p>
 
-      <div style="background:#f5f3eb;padding:20px;border-radius:8px;margin:25px 0;">
-        <p><strong>Customer ID:</strong> {{uniqueUserId}}</p>
-        <p><strong>Email:</strong> {{email}}</p>
+      <!-- Customer Details -->
+      <div style="background:#f7f5ed;padding:22px;border-radius:10px;margin:25px 0;border-left:4px solid #d4ad55;">
+
+        <h3 style="margin:0 0 15px;color:#173b2b;">
+          Your Account Details
+        </h3>
+
+        <p style="margin:10px 0;font-size:14px;">
+          <strong>Customer ID:</strong> {{uniqueUserId}}
+        </p>
+
+        <p style="margin:10px 0;font-size:14px;">
+          <strong>Email Address:</strong> {{email}}
+        </p>
+
+
       </div>
 
-      <div style="text-align:center;margin:30px 0;">
+      <!-- Login Button -->
+      <div style="text-align:center;margin:35px 0;">
+
         <a href="{{loginLink}}"
-           style="background:#173f2b;color:#ffffff;padding:14px 28px;
-                  text-decoration:none;border-radius:6px;font-weight:bold;">
-          Login to Your Account
+           style="display:inline-block;background:#173b2b;color:#e8c77a;
+                  padding:15px 35px;text-decoration:none;
+                  border-radius:7px;font-weight:bold;font-size:15px;">
+          LOGIN TO YOUR ACCOUNT
         </a>
+
       </div>
 
-      <p>
+      <p style="font-size:14px;line-height:1.7;">
         If you did not create this account, please contact our support team.
       </p>
 
-      <p>
-        Thanks,<br>
-        <strong>NutNest Support Team</strong>
+      <p style="font-size:15px;line-height:1.7;">
+        Thank you for choosing RATASREE.
+        <br>
+        <strong style="color:#173b2b;">
+          Premium Quality. Pure Happiness.
+        </strong>
+      </p>
+
+      <p style="margin-top:25px;line-height:1.7;">
+        Warm regards,<br>
+        <strong style="color:#173b2b;">RATASREE Support Team</strong>
       </p>
 
     </div>
 
-    <div style="background:#f0eee5;padding:18px;text-align:center;color:#777;font-size:12px;">
-      © 2026 NutNest. All rights reserved.
+    <!-- Footer -->
+    <div style="background:#173b2b;padding:22px;text-align:center;">
+
+      <p style="color:#e8c77a;font-size:14px;font-weight:bold;margin:0;">
+        RATASREE PREMIUM DRY FRUITS
+      </p>
+
+      <p style="color:#ffffff;font-size:12px;margin:10px 0 0;">
+        Thank you for being a part of our family!
+      </p>
+
+      <p style="color:#c8d2ca;font-size:11px;margin:15px 0 0;">
+        © 2026 RATASREE. All rights reserved.
+      </p>
+
     </div>
 
   </div>

@@ -97,8 +97,8 @@ export const sendSignupCreatedEmail = async ({
 
     let html = await fs.readFile(templatePath, 'utf-8');
 
-    const loginLink = `${process.env.FRONTEND_URL}/login`;
-
+    const loginLink = `${process.env.FRONTEND_URL}/home`;
+    console.log(process.env.EMAIL_USER)
     // Replace dynamic values
     html = html
       .replaceAll('{{name}}', name)
@@ -107,9 +107,9 @@ export const sendSignupCreatedEmail = async ({
       .replaceAll('{{loginLink}}', loginLink);
 
     await transporter.sendMail({
-      from: `"NutNest Support" <${process.env.EMAIL_USER}>`,
+      from: `"RATASREE Support" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Welcome to NutNest - Your Account Details',
+      subject: 'Welcome to RATASREE - Your Account Details',
       html
     });
 
