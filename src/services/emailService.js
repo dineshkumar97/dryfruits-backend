@@ -97,7 +97,7 @@ export const sendSignupCreatedEmail = async ({
 
     let html = await fs.readFile(templatePath, 'utf-8');
 
-    const loginLink = `${process.env.FRONTEND_URL}/home`;
+    const loginLink = `${process.env.FRONTEND_URL}/login`;
     console.log(process.env.EMAIL_USER)
     // Replace dynamic values
     html = html
