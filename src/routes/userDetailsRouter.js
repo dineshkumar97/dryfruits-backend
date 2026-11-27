@@ -1,15 +1,15 @@
 import express from "express";
 import { upload } from '../middleware/uploadMiddleware.js';
 import { loginRateLimiter } from '../middleware/rateLimit.js';
-// import {
-//     verifyTokens,
-//     authorizeRoles
-// } from "../middleware/verifyToken.js"
+import verifyTokens, {
+    authorizeRoles
+} from "../middleware/verifyToken.js"
 import {
     createUser,
     getUsers,
     authenticate,
-    checkCustomerMobile
+    checkCustomerMobile,
+    updateProfile
 } from "../controllers/userDetailsController.js";
 import {
     forgotPassword, resetPassword
@@ -27,7 +27,7 @@ router.post("/create", createUser);
 router.get("/customers-all", getUsers);
 router.post('/authenticate',loginRateLimiter,  authenticate);
 router.post("/check-customer-mobile", checkCustomerMobile);
-
+router.put('/profile', verifyTokens, updateProfile)
 // router.get("/customers",verifyToken,authorizeRoles("ADMIN"),getUsers);
 // router.post("/forgot-password", forgotPassword);
 // router.post("/reset-password", resetPassword);

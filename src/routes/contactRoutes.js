@@ -15,10 +15,10 @@ import verifyToken, {
 
 const router = express.Router();
 
-// Customer API
+// Customer: Create enquiry
 router.post("/", createContact);
 
-// Admin APIs
+// Admin: Get all enquiries
 router.get(
   "/",
   verifyToken,
@@ -26,6 +26,7 @@ router.get(
   getAllContacts
 );
 
+// Admin: Get enquiry details
 router.get(
   "/:id",
   verifyToken,
@@ -33,6 +34,7 @@ router.get(
   getContactById
 );
 
+// Admin: Update status
 router.patch(
   "/:id/status",
   verifyToken,
@@ -40,7 +42,7 @@ router.patch(
   updateContactStatus
 );
 
-// Admin: Send email reply
+// Admin: Send reply
 router.post(
   "/:id/reply",
   verifyToken,

@@ -217,3 +217,109 @@ export const checkCustomerMobile = async (req, res, next) => {
         next(error);
     }
 };
+
+export const updateProfile = async (req, res, next) => {
+    try {
+        const {
+            name,
+            email,
+            phone,
+            address,
+            city,
+            pincode,
+            profileImage
+        } = req.body;
+
+        // Validate required fields
+        if (!name || !phone) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name and mobile number are required.'
+            });
+        }
+
+        // Validate mobile number
+        if (!/^[6-9][0-9]{9}$/.test(phone)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid mobile number.'
+            });
+        }
+
+        // Check whether another user uses this mobile
+        const existingPhone = await UserDetails.findOne({
+            phone,
+            _id: { $ne: req.user._id }
+        });
+
+        if (existingPhone) {
+            return res.status(409).json({
+                success: false,
+                message: 'This mobile number is already registered.'
+            });
+        }
+
+        // Check whether another user uses this email
+        if (email) {
+            const existingEmail = await UserDetails.findOne({
+                email: email.trim().toLowerCase(),
+                _id: { $ne: req.user._id }
+            });
+
+            if (existingEmail) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'This email is already registered.'
+                });
+            }
+        }
+
+        // Update only permitted profile fields
+        const updatedUser = await UserDetails.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set: {
+                    name: name.trim(),
+                    email: email?.trim().toLowerCase() || '',
+                    phone,
+                    address: address?.trim() || '',
+                    city: city?.trim() || '',
+                    pincode: pincode?.trim() || '',
+                    profileImage: profileImage || ''
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        ).select('-password -otp -resetPasswordToken');
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully.',
+            data: {
+                _id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                address: updatedUser.address,
+                city: updatedUser.city,
+                pincode: updatedUser.pincode,
+                profileImage: updatedUser.profileImage,
+                role: updatedUser.role,
+                status: updatedUser.status,
+                uniqueUserId: updatedUser.uniqueUserId
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};

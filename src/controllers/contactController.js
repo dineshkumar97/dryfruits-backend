@@ -1,103 +1,107 @@
 
 import mongoose from "mongoose";
 import Contact from "../models/Contact.js";
-import { sendContactReplyEmail,sendContactConfirmationEmail } from "../services/emailService.js";
+
+import {
+  sendContactReplyEmail,
+  sendContactConfirmationEmail
+} from "../services/emailService.js";
 
 // ========================================
 // CUSTOMER: CREATE CONTACT ENQUIRY
 // ========================================
 
 export const createContact = async (req, res, next) => {
-    try {
-        const { fullName, mobile, email, subject, message } = req.body;
+  try {
+    const {
+      fullName,
+      mobile,
+      email,
+      subject,
+      message
+    } = req.body;
 
-        // Required field validation
-        if (
-            !fullName?.trim() ||
-            !mobile?.trim() ||
-            !email?.trim() ||
-            !subject?.trim() ||
-            !message?.trim()
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "All fields are required"
-            });
-        }
-
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!emailRegex.test(email.trim())) {
-            return res.status(400).json({
-                success: false,
-                message: "Please enter a valid email address"
-            });
-        }
-
-        // Mobile validation
-        const normalizedMobile = mobile.replace(/[\s-]/g, "");
-
-        if (!/^(?:\+91)?[6-9]\d{9}$/.test(normalizedMobile)) {
-            return res.status(400).json({
-                success: false,
-                message: "Please enter a valid Indian mobile number"
-            });
-        }
-
-        // Save enquiry
-        const contact = await Contact.create({
-            fullName: fullName.trim(),
-            mobile: normalizedMobile,
-            email: email.trim().toLowerCase(),
-            subject: subject.trim(),
-            message: message.trim()
-        });
-
-        // Send customer confirmation email
-        let emailSent = false;
-
-        try {
-            await sendContactConfirmationEmail({
-                name: contact.fullName,
-                email: contact.email,
-                subject: contact.subject,
-                message: contact.message,
-                createdAt: contact.createdAt
-            });
-
-            emailSent = true;
-
-        } catch (emailError) {
-            console.error(
-                "Contact confirmation email error:",
-                emailError
-            );
-        }
-
-        // API response
-        return res.status(201).json({
-            success: true,
-            message: emailSent
-                ? "Your enquiry has been submitted successfully. A confirmation email has been sent."
-                : "Your enquiry has been submitted successfully, but the confirmation email could not be sent.",
-            data: {
-                contactId: contact._id,
-                status: contact.status,
-                createdAt: contact.createdAt,
-                emailSent
-            }
-        });
-
-    } catch (error) {
-        next(error);
+    if (
+      !fullName?.trim() ||
+      !mobile?.trim() ||
+      !email?.trim() ||
+      !subject?.trim() ||
+      !message?.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address"
+      });
+    }
+
+    const normalizedMobile = mobile.replace(/[\s-]/g, "");
+
+    if (!/^(?:\+91)?[6-9]\d{9}$/.test(normalizedMobile)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid Indian mobile number"
+      });
+    }
+
+    const contact = await Contact.create({
+      fullName: fullName.trim(),
+      mobile: normalizedMobile,
+      email: email.trim().toLowerCase(),
+      subject: subject.trim(),
+      message: message.trim(),
+      status: "NEW"
+    });
+
+    // Optional customer confirmation email
+    let emailSent = false;
+
+    try {
+      await sendContactConfirmationEmail({
+        name: contact.fullName,
+        email: contact.email,
+        subject: contact.subject,
+        message: contact.message,
+        createdAt: contact.createdAt
+      });
+
+      emailSent = true;
+    } catch (emailError) {
+      console.error(
+        "Contact confirmation email error:",
+        emailError
+      );
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Your enquiry has been submitted successfully.",
+      data: {
+        contactId: contact._id,
+        status: contact.status,
+        createdAt: contact.createdAt,
+        emailSent
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
 // ========================================
 // ADMIN: GET ALL CONTACT ENQUIRIES
 // ========================================
+
 export const getAllContacts = async (req, res, next) => {
   try {
     const page = Math.max(Number(req.query.page) || 1, 1);
@@ -113,14 +117,15 @@ export const getAllContacts = async (req, res, next) => {
 
     const filter = {};
 
-    if (status) {
-      const validStatuses = [
-        "NEW",
-        "READ",
-        "REPLIED",
-        "CLOSED"
-      ];
+    const validStatuses = [
+      "NEW",
+      "READ",
+      "REPLIED",
+      "CUSTOMER_REPLIED",
+      "CLOSED"
+    ];
 
+    if (status) {
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
@@ -149,7 +154,7 @@ export const getAllContacts = async (req, res, next) => {
 
     const [contacts, total] = await Promise.all([
       Contact.find(filter)
-        .sort({ createdAt: -1 })
+        .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -178,6 +183,7 @@ export const getAllContacts = async (req, res, next) => {
 // ========================================
 // ADMIN: GET CONTACT ENQUIRY BY ID
 // ========================================
+
 export const getContactById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -213,6 +219,7 @@ export const getContactById = async (req, res, next) => {
 // ========================================
 // ADMIN: UPDATE CONTACT ENQUIRY STATUS
 // ========================================
+
 export const updateContactStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -229,13 +236,14 @@ export const updateContactStatus = async (req, res, next) => {
       "NEW",
       "READ",
       "REPLIED",
+      "CUSTOMER_REPLIED",
       "CLOSED"
     ];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid status. Allowed: NEW, READ, REPLIED, CLOSED"
+        message: "Invalid enquiry status"
       });
     }
 
@@ -270,6 +278,7 @@ export const updateContactStatus = async (req, res, next) => {
 // ========================================
 // ADMIN: SEND CONTACT REPLY EMAIL
 // ========================================
+
 export const sendContactReply = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -305,7 +314,7 @@ export const sendContactReply = async (req, res, next) => {
       });
     }
 
-    // Send email first
+    // Send email
     await sendContactReplyEmail({
       name: contact.fullName,
       email: contact.email,
@@ -313,15 +322,19 @@ export const sendContactReply = async (req, res, next) => {
       replyMessage: replyMessage.trim()
     });
 
-    // Save reply only after successful email sending
+    // Save admin reply
+    const replyDate = new Date();
+
     contact.replies.push({
+      sender: "ADMIN",
       message: replyMessage.trim(),
-      adminName: req.user?.name || "Admin",
-      adminEmail: req.user?.email || "",
-      sentAt: new Date()
+      senderName: req.user?.name || "Admin",
+      senderEmail: req.user?.email || "",
+      sentAt: replyDate
     });
 
     contact.status = "REPLIED";
+    contact.lastReplyAt = replyDate;
 
     await contact.save();
 
@@ -339,4 +352,69 @@ export const sendContactReply = async (req, res, next) => {
       message: "Unable to send contact reply. Please try again."
     });
   }
+};
+
+
+// ========================================
+// SYSTEM: SAVE CUSTOMER EMAIL REPLY
+// ========================================
+// Call this only after the incoming email has
+// been verified and matched to the correct enquiry.
+// Do NOT expose this as a public customer API.
+
+export const saveCustomerEmailReply = async ({
+  contactId,
+  senderEmail,
+  senderName,
+  message,
+  gmailMessageId
+}) => {
+
+  const contact = await Contact.findById(contactId);
+
+  if (!contact) {
+    throw new Error("Contact enquiry not found");
+  }
+
+  const normalizedSenderEmail = senderEmail
+    ?.trim()
+    .toLowerCase();
+
+  // Verify the sender matches the original customer
+  if (normalizedSenderEmail !== contact.email.toLowerCase()) {
+    throw new Error("Customer email does not match enquiry");
+  }
+
+  if (!message?.trim()) {
+    throw new Error("Customer reply message is empty");
+  }
+
+  // Avoid saving the same Gmail message twice
+  if (gmailMessageId) {
+    const duplicateReply = contact.replies.some(
+      reply => reply.gmailMessageId === gmailMessageId
+    );
+
+    if (duplicateReply) {
+      return contact;
+    }
+  }
+
+  const replyDate = new Date();
+
+  contact.replies.push({
+    sender: "CUSTOMER",
+    message: message.trim(),
+    senderName: senderName || contact.fullName,
+    senderEmail: normalizedSenderEmail,
+    sentAt: replyDate,
+    gmailMessageId: gmailMessageId || ""
+  });
+
+  contact.status = "CUSTOMER_REPLIED";
+  contact.lastReplyAt = replyDate;
+
+  await contact.save();
+
+  return contact;
 };

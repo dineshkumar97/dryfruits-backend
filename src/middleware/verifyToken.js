@@ -41,10 +41,6 @@ const verifyToken = async (req, res, next) => {
     }
     // Store user in request
     req.user = user;
-    console.log(
-      'User verified successfully:',
-      user
-    );
     // Continue to controller
     next();
   } catch (error) {

@@ -20,12 +20,12 @@ const userDetailsSchema = new mongoose.Schema({
         required: true
     },
 
-   phone: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true
-},
+    phone: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true
+    },
 
     profileImage: {
         type: String,
@@ -118,7 +118,24 @@ const userDetailsSchema = new mongoose.Schema({
             type: Boolean,
             default: false
         },
-    }
+    },
+    address: {
+        type: String,
+        default: "",
+        trim: true
+    },
+
+    city: {
+        type: String,
+        default: "",
+        trim: true
+    },
+
+    pincode: {
+        type: String,
+        default: "",
+        trim: true
+    },
 
 },
 
