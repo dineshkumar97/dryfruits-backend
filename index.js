@@ -14,7 +14,6 @@ import productRoutes from "./src/routes/productRoutes.js";
 import inventoryRoutes from "./src/routes/inventoryRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
 import contactRoutes from "./src/routes/contactRoutes.js";
-import gmailRoutes from "./src/routes/gmailRoutes.js";
 import { errorHandler } from "./src/middleware/errorHandler.js";
 import { requestLogger } from "./src/middleware/requestLogger.js";
 import { initializeSocket } from "./socket-server.js";
@@ -99,11 +98,6 @@ app.use(
 app.use(
   "/dry-fruits-be-nut/contact",
   contactRoutes
-);
-
-app.use(
-  "/dry-fruits-be-nut/gmail",
-  gmailRoutes
 );
 
 
